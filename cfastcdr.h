@@ -1,3 +1,26 @@
+/*
+MIT License
+
+Copyright (c) 2023 Tracy Wadleigh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 #include <inttypes.h>
 #include <stddef.h>
 
@@ -43,32 +66,34 @@ size_t cdr_alignment(size_t, size_t);
 bool cdr_move_alignment_forward(void *, size_t);
 void cdr_reset_alignment(void *);
 
-#define FASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYP)                                                                       \
-  bool cdr_serialize_##TYP(void *, TYP);                                                                               \
-  bool cdr_serialize_with_endianness_##TYP(void *, TYP, uint8_t);                                                      \
-  bool cdr_deserialize_##TYP(void *, TYP *);                                                                           \
-  bool cdr_deserialize_with_endianness_##TYP(void *, TYP *, uint8_t);                                                  \
-  bool cdr_serialize_array_##TYP(void *, const TYP *, size_t);                                                         \
-  bool cdr_serialize_array_with_endianness_##TYP(void *, const TYP *, size_t, uint8_t);                                \
-  bool cdr_deserialize_array_##TYP(void *, TYP *, size_t);                                                             \
-  bool cdr_deserialize_array_with_endianness_##TYP(void *, TYP *, size_t, uint8_t);
+#define FASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYP)                               \
+  bool cdr_serialize_##TYP(void *, TYP);                                       \
+  bool cdr_serialize_with_endianness_##TYP(void *, TYP, uint8_t);              \
+  bool cdr_deserialize_##TYP(void *, TYP *);                                   \
+  bool cdr_deserialize_with_endianness_##TYP(void *, TYP *, uint8_t);          \
+  bool cdr_serialize_array_##TYP(void *, const TYP *, size_t);                 \
+  bool cdr_serialize_array_with_endianness_##TYP(void *, const TYP *, size_t,  \
+                                                 uint8_t);                     \
+  bool cdr_deserialize_array_##TYP(void *, TYP *, size_t);                     \
+  bool cdr_deserialize_array_with_endianness_##TYP(void *, TYP *, size_t,      \
+                                                   uint8_t);
 
 typedef long double long_double;
 
-#define FASTCDR_SERIALIZATION_FOR_BITS_TYPES                                                                           \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint8_t)                                                                         \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(char)                                                                            \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int8_t)                                                                          \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint16_t)                                                                        \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int16_t)                                                                         \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint32_t)                                                                        \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int32_t)                                                                         \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(wchar_t)                                                                         \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint64_t)                                                                        \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int64_t)                                                                         \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(float)                                                                           \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(double)                                                                          \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(long_double)                                                                     \
+#define FASTCDR_SERIALIZATION_FOR_BITS_TYPES                                   \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint8_t)                                 \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(char)                                    \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int8_t)                                  \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint16_t)                                \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int16_t)                                 \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint32_t)                                \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int32_t)                                 \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(wchar_t)                                 \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint64_t)                                \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int64_t)                                 \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(float)                                   \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(double)                                  \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(long_double)                             \
   FASTCDR_SERIALIZATION_FOR_BITS_TYPE(bool)
 
 FASTCDR_SERIALIZATION_FOR_BITS_TYPES
