@@ -28,87 +28,194 @@ SOFTWARE.
 extern "C" {
 #endif
 
+/* Cdr::CdrType */
 extern const uint8_t corba_cdr;
 extern const uint8_t dds_cdr;
+
+/* Cdr::DDSCdrPlFlag */
 extern const uint8_t dds_cdr_without_pl;
 extern const uint8_t dds_cdr_with_pl;
+
+/* Cdr::Endianness */
 extern const uint8_t big_endianness;
 extern const uint8_t little_endianness;
 extern const uint8_t default_endianness;
 
-/* fast buffer */
-void *fast_buffer_make0();
-void *fast_buffer_make(char *, size_t);
-void fast_buffer_destroy(void *);
-char *fast_buffer_get_buffer(void *);
-size_t fast_buffer_get_buffer_size(void *);
-bool fast_buffer_reserve(void *, size_t);
-bool fast_buffer_resize(void *, size_t);
+/* possible values returned from `exn_type` */
+extern const uint8_t exn_success;
+extern const uint8_t exn_not_enough_memory;
+extern const uint8_t exn_bad_param;
+extern const uint8_t exn_unknown;
 
-/* cdr */
-void *cdr_make(void *, uint8_t, uint8_t);
-void cdr_destroy(void *);
-const char *cdr_get_last_exception_message(void *);
-bool cdr_read_encapsulation(void *);
-bool cdr_serialize_encapsulation(void *);
-uint8_t cdr_get_dds_cdr_pl_flag(void *);
-void cdr_set_dds_cdr_pl_flag(void *, uint8_t);
-uint16_t cdr_get_dds_cdr_options(void *);
-void cdr_set_dds_cdr_options(void *, uint16_t);
-uint8_t cdr_get_endianness(void *);
-void cdr_set_endianness(void *, uint8_t);
-bool cdr_jump(void *, size_t);
-void cdr_reset(void *);
-char *cdr_get_buffer_pointer(void *);
-char *cdr_get_current_position(void *);
-size_t cdr_get_serialized_data_length(void *);
-size_t cdr_alignment(size_t, size_t);
-bool cdr_move_alignment_forward(void *, size_t);
-void cdr_reset_alignment(void *);
+/*
+exception
 
-#define FASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYP)                               \
-  bool cdr_serialize_##TYP(void *, TYP);                                       \
-  bool cdr_serialize_with_endianness_##TYP(void *, TYP, uint8_t);              \
-  bool cdr_deserialize_##TYP(void *, TYP *);                                   \
-  bool cdr_deserialize_with_endianness_##TYP(void *, TYP *, uint8_t);          \
-  bool cdr_serialize_array_##TYP(void *, const TYP *, size_t);                 \
-  bool cdr_serialize_array_with_endianness_##TYP(void *, const TYP *, size_t,  \
-                                                 uint8_t);                     \
-  bool cdr_deserialize_array_##TYP(void *, TYP *, size_t);                     \
-  bool cdr_deserialize_array_with_endianness_##TYP(void *, TYP *, size_t,      \
-                                                   uint8_t);
+Certain functions in this interface have C++ implementations that may throw a C++ exception. These functions all return
+a `void*` and have `_exn` appended to their name.
+
+If the return value  is `NULL` then the call was successful.
+
+Otherwise, a handle to an exception object is returned. It can be queried with the following interface, after which it
+MUST BE DESTROYED by calling `exn_destroy`.
+
+All `exn_*` functions may be safely invoked on `NULL` values.
+*/
+uint8_t exn_type(void *exn);
+const char *exn_message(void *exn);
+void exn_destroy(void *exn);
+
+/*
+`FastBuffer` constructors
+
+It is the caller's responsibility to ensure:
+ - a non-zero pointer has been returned.
+*/
+void *fb_make0();                   /* owns and manages its memory */
+void *fb_make(char *buf, size_t s); /* does not own its memory */
+
+/*
+For the following functions it is the caller's responsibility to ensure the first argument is a pointer to a valid
+`FastBuffer` object. I.e., it is a value:
+ - returned by `fb_make[0]`,
+ - is not `NULL`,
+ - has not yet been passed to `fb_destroy`.
+*/
+void fb_destroy(void *fb);
+char *fb_get_buffer(void *fb);
+size_t fb_get_buffer_size(void *fb);
+bool fb_reserve(void *fb, size_t s);
+bool fb_resize(void *fb, size_t s);
+
+/*
+`Cdr` constructor
+
+It is the caller's responsibility to ensure:
+ - the first argument is a valid pointer to a `FastBuffer` object;
+ - the second argument is a valid `Cdr::Endianness` value;
+ - the third argument is a valid `Cdr::CdrType` value;
+ - a non-zero pointer has been returned.
+*/
+void *cdr_make(void *fb, uint8_t e, uint8_t t);
+
+/*
+For all remaining functions declared in this header, it is the caller's responsibility to ensure:
+ - the first argument is a pointer to a valid `Cdr` object, i.e., it is a value:
+    - returned by `cdr_make`,
+    - is not `NULL`,
+    - has not yet been passed to `cdr_destroy`.
+ - an appropriate value is passed whereever an enumeration type is indicated with a comment.
+*/
+void cdr_destroy(void *cdr);
+void *cdr_read_encapsulation_exn(void *cdr);
+void *cdr_serialize_encapsulation_exn(void *cdr);
+uint8_t cdr_get_dds_cdr_pl_flag(void *cdr);
+void cdr_set_dds_cdr_pl_flag(void *cdr, uint8_t f /* `Cdr::DDSCdrPlFlag` */);
+uint16_t cdr_get_dds_cdr_options(void *cdr);
+void cdr_set_dds_cdr_options(void *cdr, uint16_t o);
+uint8_t cdr_get_endianness(void *cdr);
+void cdr_set_endianness(void *cdr, uint8_t e /* `Cdr::Endianness` */);
+bool cdr_jump(void *cdr, size_t s);
+void cdr_reset(void *cdr);
+char *cdr_get_buffer_pointer(void *cdr);
+char *cdr_get_current_position(void *cdr);
+size_t cdr_get_serialized_data_length(void *cdr);
+size_t cdr_alignment(size_t a, size_t s);
+bool cdr_move_alignment_forward(void *cdr, size_t s);
+void cdr_reset_alignment(void *cdr);
+
+/*
+[de]serialization for bits types
+
+In addition to responsibilities previously mentioned, it is the responsibility of the caller to ensure:
+ - the second argument points to a sufficient amount of validly allocated memory.
+
+The `cdr_[de]serialize_array_*` operations are semantically equivalent to invoking the corresponding
+`cdr_[de]serialize_*` operation on the appropriate sequence of values individually, but admit a possibly faster
+implementation.
+*/
+
+#define FASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYP)                                                                       \
+  void *cdr_serialize_##TYP##_exn(void *cdr, const TYP *d);                                                            \
+  void *cdr_serialize_with_endianness_##TYP##_exn(void *cdr, const TYP *d, uint8_t e /* `Cdr::Endianness` */);         \
+  void *cdr_deserialize_##TYP##_exn(void *cdr, TYP *d);                                                                \
+  void *cdr_deserialize_with_endianness_##TYP##_exn(void *cdr, TYP *d, uint8_t e /* `Cdr::Endianness` */);             \
+  void *cdr_serialize_array_##TYP##_exn(void *cdr, const TYP *d, size_t s);                                            \
+  void *cdr_serialize_array_with_endianness_##TYP##_exn(void *cdr, const TYP *d, size_t s,                             \
+                                                        uint8_t e /* `Cdr::Endianness` */);                            \
+  void *cdr_deserialize_array_##TYP##_exn(void *cdr, TYP *d, size_t s);                                                \
+  void *cdr_deserialize_array_with_endianness_##TYP##_exn(void *cdr, TYP *d, size_t s,                                 \
+                                                          uint8_t e /* `Cdr::Endianness` */);
 
 typedef long double long_double;
 
-#define FASTCDR_SERIALIZATION_FOR_BITS_TYPES                                   \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint8_t)                                 \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(char)                                    \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int8_t)                                  \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint16_t)                                \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int16_t)                                 \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint32_t)                                \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int32_t)                                 \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(wchar_t)                                 \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint64_t)                                \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int64_t)                                 \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(float)                                   \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(double)                                  \
-  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(long_double)                             \
+#define FASTCDR_SERIALIZATION_FOR_BITS_TYPES                                                                           \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint8_t)                                                                         \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(char)                                                                            \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int8_t)                                                                          \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint16_t)                                                                        \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int16_t)                                                                         \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint32_t)                                                                        \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int32_t)                                                                         \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(wchar_t)                                                                         \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(uint64_t)                                                                        \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(int64_t)                                                                         \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(float)                                                                           \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(double)                                                                          \
+  FASTCDR_SERIALIZATION_FOR_BITS_TYPE(long_double)                                                                     \
   FASTCDR_SERIALIZATION_FOR_BITS_TYPE(bool)
 
 FASTCDR_SERIALIZATION_FOR_BITS_TYPES
 
 #undef FASTCDR_SERIALIZATION_FOR_BITS_TYPE
 
-/* string (de-)serialization */
-bool cdr_serialize_cstring(void *, const char *);
-bool cdr_serialize_with_endianness_cstring(void *, const char *, uint8_t);
-bool cdr_deserialize_cstring(void *, char **);
-bool cdr_deserialize_with_endianness_cstring(void *, char **, uint8_t);
-bool cdr_serialize_wcstring(void *, const wchar_t *);
-bool cdr_serialize_with_endianness_cwstring(void *, const wchar_t *, uint8_t);
-bool cdr_deserialize_wcstring(void *, wchar_t **);
-bool cdr_deserialize_with_endianness_cwstring(void *, wchar_t **, uint8_t);
+/*
+serialization for strings
+
+In addition to responsibilities previously mentioned, it is the responsibility of the caller to ensure:
+ - the second argument points to a null-terminated string.
+
+The null-terminator is explicitly serialized with a `cstring` but not a `cwstring`. That is, serialization for a
+`cwstring` is semantically equivalent to invoking `cdr_serialize_array_wchar_t_exn` on the non-null characters, while
+serializing a `cstring` is equivalent to invoking `cdr_serialize_array_char_exn` on all the characters, including the
+trailing null.
+*/
+void *cdr_serialize_cstring_exn(void *cdr, const char *d);
+void *cdr_serialize_with_endianness_cstring_exn(void *cdr, const char *d, uint8_t e /* `Cdr::Endianness` */);
+void *cdr_serialize_wcstring_exn(void *cdr, const wchar_t *d);
+void *cdr_serialize_with_endianness_cwstring_exn(void *cdr, const wchar_t *d, uint8_t e /* `Cdr::Endianness` */);
+
+/*
+deserialization for strings
+
+These operations allocate memory pointing to null-terminated strings, which must eventually be `free`d.
+
+In addition to responsibilities previously mentioned, it is the responsibility of the caller to ensure:
+ - the second argument points to enough writable memory to hold a pointer;
+ - `free` is called on the value written to the memory pointed to by the second argument.
+
+Note that these operations are not required to fully cover the functionality of the `Fast-CDR` library. `c[w]string`s
+may alternatively be deserialized by:
+  1. invoking `cdr_deserialize[_with_endianness]_uint32_t_exn` to obtain the string length (explicitly counting the null
+     character in the case of `cstring`);
+  2. invoking `cdr_deserialize_array[_with_endianness]_[char|wchar_t]_exn` with appropriate arguments.
+*/
+void *cdr_deserialize_cstring_exn(void *cdr, char **d);
+void *cdr_deserialize_with_endianness_cstring_exn(void *cdr, char **d, uint8_t e /* `Cdr::Endianness` */);
+void *cdr_deserialize_wcstring_exn(void *cdr, wchar_t **d);
+void *cdr_deserialize_with_endianness_cwstring_exn(void *cdr, wchar_t **d, uint8_t e /* `Cdr::Endianness` */);
+
+/*
+[de]serialization of other structured values
+
+ - A record (e.g., `class` or `struct`) is [de]serialized field-wise in the order declared in the IDL.
+ - The new fields declared in a child record are [de]serialized after those of its parent record.
+ - A [fixed-length] sequence (e.g., `std::array`) is [de]serialized in a way equivalent to invoking the serialization on
+   each value in succession, i.e., equivalent to the semantics of `cdr_[de]serialize_array_*`.
+ - A variable-length sequence (e.g., `std::vector`) is [de]serialized by [de]serializing its length as a `uint32_t`
+   followed by [de]serializing its values as though it were a fixed-length sequence.
+ - A dictionary (e.g., `std::map`) is [de]serialized as though it were a variable-length sequence of key/value pairs,
+   where a pair is [de]serialized as its key followed by its value.
+*/
 
 #ifdef __cplusplus
 } /* extern "C" */
