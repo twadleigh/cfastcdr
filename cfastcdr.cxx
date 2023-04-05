@@ -148,19 +148,11 @@ bool cdr_move_alignment_forward(void *c, size_t s) { return static_cast<Cdr *>(c
 void cdr_reset_alignment(void *c) { static_cast<Cdr *>(c)->resetAlignment(); }
 
 #define FASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYP)                                                                       \
-  void *cdr_serialize_##TYP##_exn(void *c, TYP *d) { FASTCDR_TRY(c, serialize(*d)) }                                   \
-  void *cdr_serialize_with_endianness_##TYP##_exn(void *c, TYP *d, uint8_t e) {                                        \
-    FASTCDR_TRY(c, serialize(*d, Cdr::Endianness(e)))                                                                  \
-  }                                                                                                                    \
-  void *cdr_deserialize_##TYP##_exn(void *c, TYP *d) { FASTCDR_TRY(c, deserialize(*d)) }                                     \
-  void *cdr_deserialize_with_endianness_##TYP##_exn(void *c, TYP *d, uint8_t e) {                                      \
-    FASTCDR_TRY(c, deserialize(*d, Cdr::Endianness(e)))                                                                \
-  }                                                                                                                    \
-  void *cdr_serialize_array_##TYP##_exn(void *c, const TYP *d, size_t s) { FASTCDR_TRY(c, serializeArray(d, s)) }            \
+  void *cdr_serialize_array_##TYP##_exn(void *c, const TYP *d, size_t s) { FASTCDR_TRY(c, serializeArray(d, s)) }      \
   void *cdr_serialize_array_with_endianness_##TYP##_exn(void *c, const TYP *d, size_t s, uint8_t e) {                  \
     FASTCDR_TRY(c, serializeArray(d, s, Cdr::Endianness(e)))                                                           \
   }                                                                                                                    \
-  void *cdr_deserialize_array_##TYP##_exn(void *c, TYP *d, size_t s) { FASTCDR_TRY(c, deserializeArray(d, s)) }              \
+  void *cdr_deserialize_array_##TYP##_exn(void *c, TYP *d, size_t s) { FASTCDR_TRY(c, deserializeArray(d, s)) }        \
   void *cdr_deserialize_array_with_endianness_##TYP##_exn(void *c, TYP *d, size_t s, uint8_t e) {                      \
     FASTCDR_TRY(c, deserializeArray(d, s, Cdr::Endianness(e)))                                                         \
   }
@@ -168,27 +160,3 @@ void cdr_reset_alignment(void *c) { static_cast<Cdr *>(c)->resetAlignment(); }
 FASTCDR_SERIALIZATION_FOR_BITS_TYPES
 
 #undef FASTCDR_SERIALIZATION_FOR_BITS_TYPE
-
-void *cdr_serialize_cstring_exn(void *c, const char *d) { FASTCDR_TRY(c, serialize(d)) }
-
-void *cdr_serialize_with_endianness_cstring_exn(void *c, const char *d, uint8_t e) {
-  FASTCDR_TRY(c, serialize(d, Cdr::Endianness(e)))
-}
-
-void *cdr_serialize_wcstring_exn(void *c, const wchar_t *d) { FASTCDR_TRY(c, serialize(d)) }
-
-void *cdr_serialize_with_endianness_wcstring_exn(void *c, const wchar_t *d, uint8_t e) {
-  FASTCDR_TRY(c, serialize(d, Cdr::Endianness(e)))
-}
-
-void *cdr_deserialize_cstring_exn(void *c, char **d) { FASTCDR_TRY(c, deserialize(*d)) }
-
-void *cdr_deserialize_with_endianness_cstring_exn(void *c, char **d, uint8_t e) {
-  FASTCDR_TRY(c, deserialize(*d, Cdr::Endianness(e)))
-}
-
-void *cdr_deserialize_cwstring_exn(void *c, wchar_t **d) { FASTCDR_TRY(c, deserialize(*d)) }
-
-void *cdr_deserialize_with_endianness_cwstring_exn(void *c, wchar_t **d, uint8_t e) {
-  FASTCDR_TRY(c, deserialize(*d, Cdr::Endianness(e)))
-}

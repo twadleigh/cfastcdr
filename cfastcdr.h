@@ -129,16 +129,11 @@ void cdr_reset_alignment(void *cdr);
 In addition to responsibilities previously mentioned, it is the responsibility of the caller to ensure:
  - the second argument points to a sufficient amount of validly allocated memory.
 
-The `cdr_[de]serialize_array_*` operations are semantically equivalent to invoking the corresponding
-`cdr_[de]serialize_*` operation on the appropriate sequence of values individually, but admit a possibly faster
-implementation.
+The [de]serialization operations exposed in this minimal interface are for arrays only. [De]serialization of a scalar
+can be achieved by calling cdr_[de]serialize_array_* with size 1.
 */
 
 #define FASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYP)                                                                       \
-  void *cdr_serialize_##TYP##_exn(void *cdr, const TYP *d);                                                            \
-  void *cdr_serialize_with_endianness_##TYP##_exn(void *cdr, const TYP *d, uint8_t e /* `Cdr::Endianness` */);         \
-  void *cdr_deserialize_##TYP##_exn(void *cdr, TYP *d);                                                                \
-  void *cdr_deserialize_with_endianness_##TYP##_exn(void *cdr, TYP *d, uint8_t e /* `Cdr::Endianness` */);             \
   void *cdr_serialize_array_##TYP##_exn(void *cdr, const TYP *d, size_t s);                                            \
   void *cdr_serialize_array_with_endianness_##TYP##_exn(void *cdr, const TYP *d, size_t s,                             \
                                                         uint8_t e /* `Cdr::Endianness` */);                            \
@@ -171,40 +166,16 @@ FASTCDR_SERIALIZATION_FOR_BITS_TYPES
 /*
 serialization for strings
 
-In addition to responsibilities previously mentioned, it is the responsibility of the caller to ensure:
- - the second argument points to a null-terminated string.
-
 The null-terminator is explicitly serialized with a `cstring` but not a `cwstring`. That is, serialization for a
 `cwstring` is semantically equivalent to invoking `cdr_serialize_array_wchar_t_exn` on the non-null characters, while
 serializing a `cstring` is equivalent to invoking `cdr_serialize_array_char_exn` on all the characters, including the
 trailing null.
-*/
-void *cdr_serialize_cstring_exn(void *cdr, const char *d);
-void *cdr_serialize_with_endianness_cstring_exn(void *cdr, const char *d, uint8_t e /* `Cdr::Endianness` */);
-void *cdr_serialize_wcstring_exn(void *cdr, const wchar_t *d);
-void *cdr_serialize_with_endianness_cwstring_exn(void *cdr, const wchar_t *d, uint8_t e /* `Cdr::Endianness` */);
 
-/*
-deserialization for strings
-
-These operations allocate memory pointing to null-terminated strings, which must eventually be `free`d.
-
-In addition to responsibilities previously mentioned, it is the responsibility of the caller to ensure:
- - the second argument points to enough writable memory to hold a pointer;
- - `free` is called on the value written to the memory pointed to by the second argument.
-
-Note that these operations are not required to fully cover the functionality of the `Fast-CDR` library. `c[w]string`s
-may alternatively be deserialized by:
-  1. invoking `cdr_deserialize[_with_endianness]_uint32_t_exn` to obtain the string length (explicitly counting the null
+`c[w]string`s may be [de]serialized by:
+  1. invoking `cdr_[de]serialize[_with_endianness]_uint32_t_exn` for string length (explicitly counting the null
      character in the case of `cstring`);
-  2. invoking `cdr_deserialize_array[_with_endianness]_[char|wchar_t]_exn` with appropriate arguments.
-*/
-void *cdr_deserialize_cstring_exn(void *cdr, char **d);
-void *cdr_deserialize_with_endianness_cstring_exn(void *cdr, char **d, uint8_t e /* `Cdr::Endianness` */);
-void *cdr_deserialize_wcstring_exn(void *cdr, wchar_t **d);
-void *cdr_deserialize_with_endianness_cwstring_exn(void *cdr, wchar_t **d, uint8_t e /* `Cdr::Endianness` */);
+  2. invoking `cdr_[de]serialize_array[_with_endianness]_[char|wchar_t]_exn` with appropriate arguments.
 
-/*
 [de]serialization of other structured values
 
  - A record (e.g., `class` or `struct`) is [de]serialized field-wise in the order declared in the IDL.
