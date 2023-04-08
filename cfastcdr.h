@@ -59,7 +59,8 @@ bool cfastcdr_fastbuffer_resize(cfastcdr_fastbuffer *fastbuffer, size_t size);
 void cfastcdr_fastbuffer_destroy(cfastcdr_fastbuffer *fastbuffer);
 
 struct cfastcdr_cdr;
-cfastcdr_cdr *cfastcdr_cdr_make(cfastcdr_fastbuffer *fastbuffer, CFASTCDR_ENDIANNESS endianness, uint8_t cdr_type);
+cfastcdr_cdr *cfastcdr_cdr_make(cfastcdr_fastbuffer *fastbuffer, CFASTCDR_ENDIANNESS endianness,
+                                CFASTCDR_CDR_TYPE cdr_type);
 cfastcdr_exn *cfastcdr_cdr_read_encapsulation(cfastcdr_cdr *cdr);
 cfastcdr_exn *cfastcdr_cdr_serialize_encapsulation(cfastcdr_cdr *cdr);
 CFASTCDR_DDS_CDR_PL_FLAG cfastcdr_cdr_get_dds_cdr_pl_flag(cfastcdr_cdr *cdr);

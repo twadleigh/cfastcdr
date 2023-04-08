@@ -106,7 +106,7 @@ bool cfastcdr_fastbuffer_resize(cfastcdr_fastbuffer *fb, size_t s) { return stat
   }
 
 struct cfastcdr_cdr : public Cdr {};
-cfastcdr_cdr *cfastcdr_cdr_make(cfastcdr_fastbuffer *fb, uint8_t e, uint8_t t) {
+cfastcdr_cdr *cfastcdr_cdr_make(cfastcdr_fastbuffer *fb, CFASTCDR_ENDIANNESS e, CFASTCDR_CDR_TYPE t) {
   try {
     return static_cast<cfastcdr_cdr *>(new Cdr(*static_cast<FastBuffer *>(fb), Cdr::Endianness(e), Cdr::CdrType(t)));
   } catch (const std::exception &e) {
