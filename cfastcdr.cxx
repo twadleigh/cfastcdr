@@ -32,131 +32,160 @@ SOFTWARE.
 using namespace eprosima::fastcdr;
 
 /* constants */
-const uint8_t corba_cdr = static_cast<uint8_t>(Cdr::CORBA_CDR);
-const uint8_t dds_cdr = static_cast<uint8_t>(Cdr::DDS_CDR);
-const uint8_t dds_cdr_without_pl = static_cast<uint8_t>(Cdr::DDS_CDR_WITHOUT_PL);
-const uint8_t dds_cdr_with_pl = static_cast<uint8_t>(Cdr::DDS_CDR_WITH_PL);
-const uint8_t big_endianness = static_cast<uint8_t>(Cdr::BIG_ENDIANNESS);
-const uint8_t little_endianness = static_cast<uint8_t>(Cdr::LITTLE_ENDIANNESS);
-const uint8_t default_endianness = static_cast<uint8_t>(Cdr::DEFAULT_ENDIAN);
-const uint8_t exn_success = 0;
-const uint8_t exn_not_enough_memory = 1;
-const uint8_t exn_bad_param = 2;
-const uint8_t exn_unknown = 3;
+const CFASTCDR_ENDIANNESS CFASTCDR_DEFAULT_ENDIANNESS = static_cast<CFASTCDR_ENDIANNESS>(Cdr::DEFAULT_ENDIAN);
 const char empty_message[] = {0};
 
 /* exception */
-struct Exn {
-  uint8_t type;
+struct cfastcdr_exn {
+  CFASTCDR_EXN_TYPE type;
   std::string message;
 
-  Exn(const std::exception &e) : type(exn_unknown), message(e.what()) {}
-  Exn(const exception::NotEnoughMemoryException &e) : type(exn_not_enough_memory), message(e.what()) {}
-  Exn(const exception::BadParamException &e) : type(exn_bad_param), message(e.what()) {}
+  cfastcdr_exn(const std::exception &e) : type(CFASTCDR_EXN_UNKNOWN), message(e.what()) {}
+  cfastcdr_exn(const exception::NotEnoughMemoryException &e)
+      : type(CFASTCDR_EXN_NOT_ENOUGH_MEMORY), message(e.what()) {}
+  cfastcdr_exn(const exception::BadParamException &e) : type(CFASTCDR_EXN_BAD_PARAM), message(e.what()) {}
 };
 
-uint8_t exn_type(void *exn) {
+CFASTCDR_EXN_TYPE cfastcdr_exn_type(cfastcdr_exn *exn) {
   if (nullptr == exn) {
-    return exn_success;
+    return CFASTCDR_EXN_SUCCESS;
   }
-  return static_cast<Exn *>(exn)->type;
+  return exn->type;
 }
 
-const char *exn_message(void *exn) {
+const char *cfastcdr_exn_message(cfastcdr_exn *exn) {
   if (nullptr == exn) {
     return empty_message;
   }
-  return static_cast<Exn *>(exn)->message.c_str();
+  return exn->message.c_str();
 }
 
-void exn_destroy(void *exn) {
+void cfastcdr_exn_destroy(cfastcdr_exn *exn) {
   if (nullptr != exn) {
-    delete static_cast<Exn *>(exn);
+    delete exn;
   }
 }
 
 /* fast buffer */
-void *fb_make0() { return static_cast<void *>(new FastBuffer()); }
+struct cfastcdr_fastbuffer : public FastBuffer {};
+cfastcdr_fastbuffer *cfastcdr_fastbuffer_make_variable() {
+  return static_cast<cfastcdr_fastbuffer *>(new FastBuffer());
+}
 
-void *fb_make(char *buf, size_t s) {
+cfastcdr_fastbuffer *cfastcdr_fastbuffer_make_fixed(char *buf, size_t s) {
   try {
-    return static_cast<void *>(new FastBuffer(buf, s));
+    return static_cast<cfastcdr_fastbuffer *>(new FastBuffer(buf, s));
   } catch (const std::exception &e) {
     return nullptr;
   }
 }
 
-void fb_destroy(void *fb) { delete static_cast<FastBuffer *>(fb); }
-char *fb_get_buffer(void *fb) { return static_cast<FastBuffer *>(fb)->getBuffer(); }
-size_t fb_get_buffer_size(void *fb) { return static_cast<FastBuffer *>(fb)->getBufferSize(); }
-bool fb_reserve(void *fb, size_t s) { return static_cast<FastBuffer *>(fb)->reserve(s); }
-bool fb_resize(void *fb, size_t s) { return static_cast<FastBuffer *>(fb)->resize(s); }
+void cfastcdr_fastbuffer_destroy(cfastcdr_fastbuffer *fb) { delete static_cast<FastBuffer *>(fb); }
 
-#define FASTCDR_TRY(c, body)                                                                                           \
+char *cfastcdr_fastbuffer_get_buffer(cfastcdr_fastbuffer *fb) { return static_cast<FastBuffer *>(fb)->getBuffer(); }
+
+size_t cfastcdr_fastbuffer_get_buffer_size(cfastcdr_fastbuffer *fb) {
+  return static_cast<FastBuffer *>(fb)->getBufferSize();
+}
+
+bool cfastcdr_fastbuffer_reserve(cfastcdr_fastbuffer *fb, size_t s) {
+  return static_cast<FastBuffer *>(fb)->reserve(s);
+}
+
+bool cfastcdr_fastbuffer_resize(cfastcdr_fastbuffer *fb, size_t s) { return static_cast<FastBuffer *>(fb)->resize(s); }
+
+#define CFASTCDR_TRY(c, body)                                                                                          \
   Cdr *ptr = static_cast<Cdr *>(c);                                                                                    \
   try {                                                                                                                \
     ptr->body;                                                                                                         \
-    return nullptr;                                                                                                    \
+    return static_cast<cfastcdr_exn *>(nullptr);                                                                       \
   } catch (const exception::Exception &exn) {                                                                          \
-    return new Exn(exn);                                                                                               \
+    return new cfastcdr_exn(exn);                                                                                      \
   } catch (const std::exception &exn) {                                                                                \
-    return new Exn(exn);                                                                                               \
+    return new cfastcdr_exn(exn);                                                                                      \
   }
 
-void *cdr_make(void *fb, uint8_t e, uint8_t t) {
+struct cfastcdr_cdr : public Cdr {};
+cfastcdr_cdr *cfastcdr_cdr_make(cfastcdr_fastbuffer *fb, uint8_t e, uint8_t t) {
   try {
-    return static_cast<void *>(new Cdr(*static_cast<FastBuffer *>(fb), Cdr::Endianness(e), Cdr::CdrType(t)));
+    return static_cast<cfastcdr_cdr *>(new Cdr(*static_cast<FastBuffer *>(fb), Cdr::Endianness(e), Cdr::CdrType(t)));
   } catch (const std::exception &e) {
     return nullptr;
   }
 }
 
-void cdr_destroy(void *c) { delete static_cast<Cdr *>(c); }
+void cfastcdr_cdr_destroy(cfastcdr_cdr *c) { delete static_cast<Cdr *>(c); }
 
-void *cdr_read_encapsulation_exn(void *c) { FASTCDR_TRY(c, read_encapsulation()) }
+cfastcdr_exn *cfastcdr_cdr_read_encapsulation(cfastcdr_cdr *c){CFASTCDR_TRY(c, read_encapsulation())}
 
-void *cdr_serialize_encapsulation_exn(void *c){FASTCDR_TRY(c, serialize_encapsulation())}
+cfastcdr_exn *cfastcdr_cdr_serialize_encapsulation(cfastcdr_cdr *c){CFASTCDR_TRY(c, serialize_encapsulation())}
 
-uint8_t cdr_get_dds_cdr_pl_flag(void *c) {
-  return static_cast<uint8_t>(static_cast<Cdr *>(c)->getDDSCdrPlFlag());
+CFASTCDR_DDS_CDR_PL_FLAG cfastcdr_cdr_get_dds_cdr_pl_flag(cfastcdr_cdr *c) {
+  return static_cast<CFASTCDR_DDS_CDR_PL_FLAG>(static_cast<Cdr *>(c)->getDDSCdrPlFlag());
 }
 
-void cdr_set_dds_cdr_pl_flag(void *c, uint8_t f) { static_cast<Cdr *>(c)->setDDSCdrPlFlag(Cdr::DDSCdrPlFlag(f)); }
+void cfastcdr_cdr_set_dds_cdr_pl_flag(cfastcdr_cdr *c, CFASTCDR_DDS_CDR_PL_FLAG f) {
+  static_cast<Cdr *>(c)->setDDSCdrPlFlag(Cdr::DDSCdrPlFlag(f));
+}
 
-uint16_t cdr_get_dds_cdr_options(void *c) { return static_cast<Cdr *>(c)->getDDSCdrOptions(); }
+uint16_t cfastcdr_cdr_get_dds_cdr_options(cfastcdr_cdr *c) { return static_cast<Cdr *>(c)->getDDSCdrOptions(); }
 
-void cdr_set_dds_cdr_options(void *c, uint16_t o) { static_cast<Cdr *>(c)->setDDSCdrOptions(o); }
+void cfastcdr_cdr_set_dds_cdr_options(cfastcdr_cdr *c, uint16_t o) { static_cast<Cdr *>(c)->setDDSCdrOptions(o); }
 
-uint8_t cdr_get_endianness(void *c) { return static_cast<uint8_t>(static_cast<Cdr *>(c)->endianness()); }
+CFASTCDR_ENDIANNESS cfastcdr_cdr_get_endianness(cfastcdr_cdr *c) {
+  return static_cast<CFASTCDR_ENDIANNESS>(static_cast<Cdr *>(c)->endianness());
+}
 
-void cdr_set_endianness(void *c, uint8_t e) { static_cast<Cdr *>(c)->changeEndianness(Cdr::Endianness(e)); }
+void cfastcdr_cdr_set_endianness(cfastcdr_cdr *c, CFASTCDR_ENDIANNESS e) {
+  static_cast<Cdr *>(c)->changeEndianness(Cdr::Endianness(e));
+}
 
-bool cdr_jump(void *c, size_t s) { return static_cast<Cdr *>(c)->jump(s); }
+bool cfastcdr_cdr_jump(cfastcdr_cdr *c, size_t s) { return static_cast<Cdr *>(c)->jump(s); }
 
-void cdr_reset(void *c) { static_cast<Cdr *>(c)->reset(); }
+void cfastcdr_cdr_reset(cfastcdr_cdr *c) { static_cast<Cdr *>(c)->reset(); }
 
-char *cdr_get_buffer_pointer(void *c) { return static_cast<Cdr *>(c)->getBufferPointer(); }
+char *cfastcdr_cdr_get_buffer_pointer(cfastcdr_cdr *c) { return static_cast<Cdr *>(c)->getBufferPointer(); }
 
-char *cdr_get_current_position(void *c) { return static_cast<Cdr *>(c)->getCurrentPosition(); }
+char *cfastcdr_cdr_get_current_position(cfastcdr_cdr *c) { return static_cast<Cdr *>(c)->getCurrentPosition(); }
 
-size_t cdr_get_serialized_data_length(void *c) { return static_cast<Cdr *>(c)->getSerializedDataLength(); }
+size_t cfastcdr_cdr_get_serialized_data_length(cfastcdr_cdr *c) {
+  return static_cast<Cdr *>(c)->getSerializedDataLength();
+}
 
-size_t cdr_alignment(size_t a, size_t s) { return Cdr::alignment(a, s); }
+size_t cfastcdr_cdr_alignment(size_t a, size_t s) { return Cdr::alignment(a, s); }
 
-bool cdr_move_alignment_forward(void *c, size_t s) { return static_cast<Cdr *>(c)->moveAlignmentForward(s); }
+bool cfastcdr_cdr_move_alignment_forward(cfastcdr_cdr *c, size_t s) {
+  return static_cast<Cdr *>(c)->moveAlignmentForward(s);
+}
 
-void cdr_reset_alignment(void *c) { static_cast<Cdr *>(c)->resetAlignment(); }
+void cfastcdr_cdr_reset_alignment(cfastcdr_cdr *c) { static_cast<Cdr *>(c)->resetAlignment(); }
 
-#define FASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYP)                                                                       \
-  void *cdr_serialize_array_##TYP##_exn(void *c, const TYP *d, size_t s) { FASTCDR_TRY(c, serializeArray(d, s)) }      \
-  void *cdr_serialize_array_with_endianness_##TYP##_exn(void *c, const TYP *d, size_t s, uint8_t e) {                  \
-    FASTCDR_TRY(c, serializeArray(d, s, Cdr::Endianness(e)))                                                           \
-  }                                                                                                                    \
-  void *cdr_deserialize_array_##TYP##_exn(void *c, TYP *d, size_t s) { FASTCDR_TRY(c, deserializeArray(d, s)) }        \
-  void *cdr_deserialize_array_with_endianness_##TYP##_exn(void *c, TYP *d, size_t s, uint8_t e) {                      \
-    FASTCDR_TRY(c, deserializeArray(d, s, Cdr::Endianness(e)))                                                         \
+#define CFASTCDR_SERIALIZATION_FOR_BITS_TYPE(TYPE)                                                                     \
+  cfastcdr_exn *cfastcdr_serialize_##TYPE(cfastcdr_cdr *cdr, TYPE value){CFASTCDR_TRY(cdr, serialize(value))}          \
+                                                                                                                       \
+  cfastcdr_exn *cfastcdr_serialize_endian_##TYPE(cfastcdr_cdr *cdr, CFASTCDR_ENDIANNESS endianness, TYPE value){       \
+      CFASTCDR_TRY(cdr, serialize(value, Cdr::Endianness(endianness)))}                                                \
+                                                                                                                       \
+  cfastcdr_exn *cfastcdr_deserialize_##TYPE(cfastcdr_cdr *cdr, TYPE *value){CFASTCDR_TRY(cdr, deserialize(*value))}    \
+                                                                                                                       \
+  cfastcdr_exn *cfastcdr_deserialize_endian_##TYPE(cfastcdr_cdr *cdr, CFASTCDR_ENDIANNESS endianness, TYPE *value){    \
+      CFASTCDR_TRY(cdr, deserialize(*value, Cdr::Endianness(endianness)))}                                             \
+                                                                                                                       \
+  cfastcdr_exn *cfastcdr_serialize_array_##TYPE(cfastcdr_cdr *cdr, const TYPE *array,                                  \
+                                                size_t size){CFASTCDR_TRY(cdr, serializeArray(array, size))}           \
+                                                                                                                       \
+  cfastcdr_exn *cfastcdr_serialize_endian_array_##TYPE(cfastcdr_cdr *cdr, CFASTCDR_ENDIANNESS endianness,              \
+                                                       const TYPE *array, size_t size){                                \
+      CFASTCDR_TRY(cdr, serializeArray(array, size, Cdr::Endianness(endianness)))}                                     \
+                                                                                                                       \
+  cfastcdr_exn *cfastcdr_deserialize_array_##TYPE(cfastcdr_cdr *cdr, TYPE *array,                                      \
+                                                  size_t size){CFASTCDR_TRY(cdr, deserializeArray(array, size))}       \
+                                                                                                                       \
+  cfastcdr_exn *cfastcdr_deserialize_endian_array_##TYPE(cfastcdr_cdr *cdr, CFASTCDR_ENDIANNESS endianness,            \
+                                                         TYPE *array, size_t size) {                                   \
+    CFASTCDR_TRY(cdr, deserializeArray(array, size, Cdr::Endianness(endianness)))                                      \
   }
 
-FASTCDR_SERIALIZATION_FOR_BITS_TYPES
+CFASTCDR_SERIALIZATION_FOR_BITS_TYPES
 
-#undef FASTCDR_SERIALIZATION_FOR_BITS_TYPE
+#undef CFASTCDR_SERIALIZATION_FOR_BITS_TYPE
